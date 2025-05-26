@@ -21,6 +21,11 @@ pub mod lending {
         Ok(())
     }
 
+    pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
+        process_deposit(ctx, amount)?;
+        Ok(())
+    }
+
 }
 
 

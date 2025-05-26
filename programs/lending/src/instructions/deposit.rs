@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::example_mocks::solana_keypair::Keypair;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{ self, Mint, TokenAccount, TokenInterface, TransferChecked };
 use crate::state::{Bank, User};
@@ -44,4 +45,38 @@ pub struct Deposit<'info> {
 // 4. Update bank's total deposited and total deposit shares
 // 5. Update users mental health factor ??
 
-pub fn 
+pub fn process_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
+    let transfer_cpi_accounts = TransferChecked {
+        from: ctx.accounts.user_token_account.to_account_info(),
+        mint: ctx.accounts.mint.to_account_info(),
+        to: ctx.accounts.bank_token_account.to_account_info(),
+        authority: ctx.accounts.signer.to_account_info()
+    };
+    let cpi_program = ctx.accounts.token_program.to_account_info();
+    let cpi_ctx = CpiContext::new(cpi_program, transfer_cpi_accounts);
+    token_interface::transfer_checked(cpi_ctx, amount, ctx.accounts.mint.decimals)?;
+
+    let bank = &mut ctx.accounts.bank;
+
+    if bank.total_deposits == 0 {
+        bank.total_deposits = amount;
+        bank.total_deposits_shares = amount;
+    }
+    let deposit_ratio = amount.checked_div(bank.total_deposits).unwrap();
+    let user_shares = bank.total_deposits.checked_mul(deposit_ratio).unwrap();
+    let user = &mut ctx.accounts.user_account;
+
+    match ctx.accounts.mint.to_account_info().key() {
+        key if key == user.usdc_address => {
+            user.deposited_usdc += amount;
+            user.deposited_usdc_shares += user_shares;
+        },
+        _ => {
+            user.deposited_sol += amount;
+            user.deposited_sol_shares += user_shares;
+        } 
+    }
+    bank.total_deposits += amount;
+    bank.total_deposits_shares += user_shares;
+    Ok(())
+}
