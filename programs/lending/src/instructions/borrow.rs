@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{associated_token::AssociatedToken, token_interface::{self, Mint, TokenAccount, TokenInterface, TransferChecked}};
-use pyth_solana_receiver_sdk::price_update::{self, PriceUpdateV2, get_feed_id_from_hex};
+use pyth_solana_receiver_sdk::price_update::{ PriceUpdateV2, get_feed_id_from_hex};
 
 use crate::{constants::{MAX_AGE, SOL_USD_FEED_ID, USDC_USD_FEED_ID}, state::*};
 use std::f32::consts::E;

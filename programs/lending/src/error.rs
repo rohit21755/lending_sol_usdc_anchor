@@ -4,6 +4,8 @@ use anchor_lang::prelude::*;
 pub enum ErrorCode {
     #[msg("Insuficient Funds")]
     InsufficientFunds,
-    #[msg("OverBorrowable")]
+    #[msg("Over Borrowable Amount")]
     OverBorrowable,
+    #[msg("Over Repay Amount")]
+    OverRepay,
 }
