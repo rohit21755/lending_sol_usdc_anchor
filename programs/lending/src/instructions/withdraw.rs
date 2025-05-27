@@ -4,6 +4,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{ self, Mint, TokenAccount, TokenInterface, TransferChecked };
 use crate::error::ErrorCode;
 use crate::state::*;
+use std::f32::consts::E;
 
 #[derive(Accounts)]
  pub struct Withdraw <'info> {
@@ -56,7 +57,16 @@ pub fn process_withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         deposited_value = user.deposited_sol;
     }
 
-    if amount > deposited_value {
+    let time_diff = user.last_updated - Clock::get()?.unix_timestamp;
+
+    let bank = &mut ctx.accounts.bank;
+    
+    bank.total_deposits = (bank.total_deposits as f64 * E.powf(bank.interest_rate as f32 * time_diff as f32) as f64) as u64;
+
+    let value_per_share = bank.total_deposits as f64/ bank.total_deposits_shares as f64;
+    let user_value = deposited_value as f64 / value_per_share;
+
+    if user_value < amount as f64 {
         return Err(ErrorCode::InsufficientFunds.into());
     }
 
@@ -82,5 +92,20 @@ pub fn process_withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     let decimals = ctx.accounts.mint.decimals;
 
     token_interface::transfer_checked(cpi_ctx, amount, decimals)?;
+
+    let bank = &mut ctx.accounts.bank;
+    let shares_to_remove = (amount as f64/ bank.total_deposits as f64) * bank.total_deposits_shares as f64;
+
+    if ctx.accounts.mint.to_account_info().key() == user.usdc_address {
+        user.deposited_usdc -= amount;
+        user.deposited_usdc_shares -= shares_to_remove as u64;
+    }
+    else {
+        user.deposited_sol -=amount;
+        user.deposited_sol_shares -= shares_to_remove as u64;
+    }
+    bank.total_deposits -= amount;
+    bank.total_deposits_shares -= shares_to_remove as u64;
+
     Ok(())
 }

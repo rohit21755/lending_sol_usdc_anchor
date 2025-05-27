@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::example_mocks::solana_keypair::Keypair;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{ self, Mint, TokenAccount, TokenInterface, TransferChecked };
 use crate::state::{Bank, User};
@@ -43,7 +42,7 @@ pub struct Deposit<'info> {
 // 2. Calculate new shares to be added to the bank
 // 3. Update user's deposited amount and total collateral value
 // 4. Update bank's total deposited and total deposit shares
-// 5. Update users mental health factor ??
+// 5. Update user's mental health factor ??
 
 pub fn process_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     let transfer_cpi_accounts = TransferChecked {
@@ -78,5 +77,7 @@ pub fn process_deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     }
     bank.total_deposits += amount;
     bank.total_deposits_shares += user_shares;
+
+    user.last_updated = Clock::get()?.unix_timestamp;
     Ok(())
 }
