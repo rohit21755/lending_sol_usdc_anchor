@@ -44,6 +44,11 @@ pub mod lending {
         Ok(())
     }
 
+    pub fn liquidation(ctx: Context<Liquidate>) -> Result<()> {
+        process_liquidation(ctx)?;
+        Ok(())
+    }
+
 }
 
 
